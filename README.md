@@ -11,7 +11,7 @@ An Android fasting timer dressed in the same Nintendo DS system-menu look as [pi
   - reminders: drink water, take a walk
   - a tap game, and your progress so far
   - fidgets: pop bubbles before they fade, squeeze a ball, doodle on a pad, and spin a dial
-  - a favorite Pokémon picker: pick the Pokémon you like best in small batches until one is left standing, then keep going for second place and beyond (Gen 1, 151 Pokémon)
+  - a favorite Pokémon picker: pick the Pokémon you like best in small batches until one is left standing, then keep going for second place and beyond. It covers all 1025 species from Gen 1 to Gen 9, each shown with its PC sprite.
   - *I'M STILL FASTING* logs a beaten craving and returns to the timer.
   - *I'M EATING* logs the craving and ends the fast.
 - **History**: finished fasts with start, end, length, whether the target was met, and cravings resisted. Tap a fast, then A to delete it.
@@ -92,4 +92,4 @@ pictoclip has no animations beyond the prompt flash and the pressed state, so th
 
 ## Credits
 
-Font: [DotGothic16](https://github.com/fontworks-fonts/DotGothic16), SIL Open Font License 1.1 (see `FONT-LICENSE-OFL.txt`). Visual design follows pictoclip. The favorite Pokémon picker is a Kotlin port of the knockout algorithm in [antialiasis/favorite-picker](https://github.com/antialiasis/favorite-picker) (MIT, notice in `THIRD_PARTY/favorite-picker-LICENSE.txt`). Not affiliated with Nintendo.
+Font: [DotGothic16](https://github.com/fontworks-fonts/DotGothic16), SIL Open Font License 1.1 (see `FONT-LICENSE-OFL.txt`). Visual design follows pictoclip. The favorite Pokémon picker is a Kotlin port of the knockout algorithm in [antialiasis/favorite-picker](https://github.com/antialiasis/favorite-picker) (MIT, notice in `THIRD_PARTY/favorite-picker-LICENSE.txt`). Pokémon names and sprites come from [PokeAPI](https://github.com/PokeAPI/pokeapi) and its [sprites](https://github.com/PokeAPI/sprites) repository. Generation VIII PC icons are used for Pokédex 1–898, and the front sprites for 899–1025, which have no PC icon. `tools/fetch_pokemon_assets.py` regenerates both. Pokémon and their artwork are the property of Nintendo, Game Freak and Creatures. Before you distribute the APK, check the sprites' terms: I could not find a license file for them. Not affiliated with Nintendo.

@@ -8,6 +8,7 @@ import kotlin.random.Random
 
 class FavoritePickerTest {
     private val names = listOf("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L")
+    private val everyId = ALL_POKEMON.map { it.dex.toString() }
 
     /** Every item is in exactly one place: in play, a favorite, or knocked out. */
     private fun assertAccountedFor(state: PickerState, total: Int) {
@@ -59,17 +60,17 @@ class FavoritePickerTest {
     @Test
     fun aRunPickingTheFirstItemOfEachBatchFindsFavoritesAndAccountsForEveryItem() {
         val random = Random(7)
-        var state = FavoritePicker.start(GEN1_POKEMON, random)
+        var state = FavoritePicker.start(everyId, random)
         var steps = 0
 
         while (!state.isFinished && steps < 5_000) {
-            assertAccountedFor(state, GEN1_POKEMON.size)
+            assertAccountedFor(state, everyId.size)
             state = FavoritePicker.pick(state, setOf(state.evaluating.first()), random)
             steps++
         }
 
         assertTrue("the run did not finish", state.isFinished)
-        assertAccountedFor(state, GEN1_POKEMON.size)
+        assertAccountedFor(state, everyId.size)
         assertTrue(state.favorites.isNotEmpty())
         assertEquals(state.favorites.size, state.favorites.toSet().size)
         assertFalse(state.favorites.any { favorite -> state.eliminated.any { it.id == favorite } })
@@ -78,18 +79,29 @@ class FavoritePickerTest {
     @Test
     fun aRunWithRandomPicksFinishesAndAccountsForEveryItem() {
         val random = Random(11)
-        var state = FavoritePicker.start(GEN1_POKEMON, random)
+        var state = FavoritePicker.start(everyId, random)
         var steps = 0
 
         while (!state.isFinished && steps < 5_000) {
-            assertAccountedFor(state, GEN1_POKEMON.size)
+            assertAccountedFor(state, everyId.size)
             val picked = state.evaluating.filter { random.nextBoolean() }.ifEmpty { listOf(state.evaluating.first()) }
             state = FavoritePicker.pick(state, picked.toSet(), random)
             steps++
         }
 
         assertTrue("the run did not finish", state.isFinished)
-        assertAccountedFor(state, GEN1_POKEMON.size)
+        assertAccountedFor(state, everyId.size)
         assertEquals(state.favorites.size, state.favorites.toSet().size)
+    }
+
+    @Test
+    fun theSpeciesListCoversEveryNationalDexEntryOnce() {
+        assertEquals(1025, ALL_POKEMON.size)
+        assertEquals((1..1025).toList(), ALL_POKEMON.map { it.dex })
+        assertEquals(ALL_POKEMON.size, ALL_POKEMON.map { it.name }.toSet().size)
+        assertTrue(ALL_POKEMON.all { it.name.isNotBlank() })
+        assertEquals("Bulbasaur", ALL_POKEMON.first().name)
+        assertEquals("Pikachu", ALL_POKEMON[24].name)
+        assertEquals("Pecharunt", ALL_POKEMON.last().name)
     }
 }
