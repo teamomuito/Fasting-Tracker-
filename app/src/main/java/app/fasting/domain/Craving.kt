@@ -7,8 +7,11 @@ import kotlin.math.cos
 object Craving {
     const val COUNTDOWN_MS = 10 * Durations.MINUTE_MS
     const val CARD_ROTATE_MS = 150_000L
-    const val CARD_COUNT = 4
+    const val CARD_COUNT = 8
     const val BREATH_CYCLE_MS = 8_000L
+
+    /** The card after [card], wrapping back to the first one after the last. */
+    fun nextCard(card: Int): Int = (card + 1) % CARD_COUNT
 
     /** Size of the breathing circle for [phase] (0..1 of one cycle). Eases in and out, 0 to 1. */
     fun breathScale(phase: Float): Float = ((1 - cos(2 * PI * phase)) / 2).toFloat()

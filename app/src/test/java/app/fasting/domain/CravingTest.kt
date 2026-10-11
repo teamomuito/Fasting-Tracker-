@@ -23,6 +23,19 @@ class CravingTest {
     }
 
     @Test
+    fun cardsRotateThroughAllOfThemAndWrap() {
+        assertEquals(8, Craving.CARD_COUNT)
+        var card = 0
+        val seen = mutableSetOf<Int>()
+        repeat(Craving.CARD_COUNT) {
+            seen += card
+            card = Craving.nextCard(card)
+        }
+        assertEquals((0 until Craving.CARD_COUNT).toSet(), seen)
+        assertEquals(0, card)
+    }
+
+    @Test
     fun motivationReflectsProgress() {
         assertTrue(Craving.motivation(4 * hour, 16 * hour).startsWith("4h 00m in."))
         assertTrue(Craving.motivation(10 * hour, 16 * hour).contains("past halfway"))
