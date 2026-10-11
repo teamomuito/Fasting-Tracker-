@@ -52,7 +52,6 @@ import app.fasting.domain.Craving
 import app.fasting.domain.CravingOutcome
 import app.fasting.domain.Durations
 import app.fasting.domain.Fast
-import app.fasting.domain.GEN1_POKEMON
 import app.fasting.ui.FastingViewModel
 import app.fasting.ui.components.DsLetterButton
 import app.fasting.ui.components.DsPanel
@@ -81,7 +80,7 @@ fun CravingScreen(vm: FastingViewModel, fast: Fast) {
     val startedAt = rememberSaveable { System.currentTimeMillis() }
     val left = (Craving.COUNTDOWN_MS - (now - startedAt)).coerceAtLeast(0L)
 
-    val pokemon = remember { FavoritePickerSession(GEN1_POKEMON) }
+    val pokemon = vm.pokemonPicker
 
     var card by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(card) {
@@ -294,8 +293,11 @@ private fun BubblePop() {
         .pointerInput(Unit) {
             detectTapGestures { offset ->
                 val radius = 24.dp.toPx()
+                val now = System.currentTimeMillis()
+                // A bubble that has faded out is no longer there to tap, even before the loop prunes it.
                 val hit = bubbles.lastOrNull { bubble ->
-                    (Offset(bubble.x * size.width, bubble.y * size.height) - offset).getDistance() <= radius
+                    now - bubble.bornAt <= BUBBLE_LIFE_MS &&
+                        (Offset(bubble.x * size.width, bubble.y * size.height) - offset).getDistance() <= radius
                 }
                 if (hit != null) {
                     bubbles.remove(hit)
@@ -346,11 +348,14 @@ private fun SqueezeBall() {
                     .size(120.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
-                            onPress = {
-                                squeezing = true
+                            onPress = { start ->
+                                // Only a press on the ball itself counts; the square around it does not.
+                                val centre = Offset(size.width / 2f, size.height / 2f)
+                                val onBall = (start - centre).getDistance() <= size.width / 2f
+                                if (onBall) squeezing = true
                                 val released = tryAwaitRelease()
                                 squeezing = false
-                                if (released) squeezes++
+                                if (released && onBall) squeezes++
                             },
                         )
                     }

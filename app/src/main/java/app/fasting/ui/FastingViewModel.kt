@@ -9,6 +9,8 @@ import app.fasting.data.FastRepository
 import app.fasting.domain.CravingOutcome
 import app.fasting.domain.Durations
 import app.fasting.domain.Fast
+import app.fasting.domain.GEN1_POKEMON
+import app.fasting.ui.screens.FavoritePickerSession
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +35,9 @@ class FastingViewModel(private val repository: FastRepository) : ViewModel() {
 
     val fasts: StateFlow<List<Fast>> = repository.observeFasts()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** The favorite Pokémon picker lives here so its picks survive the activity being recreated, such as on rotation. */
+    val pokemonPicker = FavoritePickerSession(GEN1_POKEMON)
 
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui.asStateFlow()
