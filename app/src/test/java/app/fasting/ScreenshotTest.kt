@@ -33,8 +33,9 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Renders each screen with fixed data and writes it to build/outputs/screenshots/*.png.
+ * Renders each screen with fixed data and writes PNG files into build/outputs/screenshots.
  * CI uploads that folder as an artifact so the UI can be checked without installing the APK.
+ * (Kotlin block comments nest, so this text must not contain a slash followed by an asterisk.)
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
