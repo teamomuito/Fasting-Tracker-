@@ -80,11 +80,9 @@ def write_kotlin(names: dict[int, str]) -> None:
 def download_sprite(dex: int) -> str:
     target = ASSET_DIR / f"{dex}.png"
     if dex <= PC_ICON_LAST_DEX:
-        try:
-            target.write_bytes(fetch(f"{SPRITES}/versions/generation-viii/icons/{dex}.png"))
-            return "icon"
-        except OSError:
-            pass
+        # Every number up to 898 has a PC icon. A failed download here is an error, not a cue to use a front sprite.
+        target.write_bytes(fetch(f"{SPRITES}/versions/generation-viii/icons/{dex}.png"))
+        return "icon"
     target.write_bytes(fetch(f"{SPRITES}/{dex}.png"))
     return "front"
 
