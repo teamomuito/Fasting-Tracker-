@@ -11,7 +11,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,17 +39,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.fasting.domain.Craving
 import app.fasting.domain.CravingOutcome
 import app.fasting.domain.Durations
 import app.fasting.domain.Fast
+import app.fasting.domain.GEN1_POKEMON
 import app.fasting.ui.FastingViewModel
 import app.fasting.ui.components.DsLetterButton
 import app.fasting.ui.components.DsPanel
@@ -77,10 +81,14 @@ fun CravingScreen(vm: FastingViewModel, fast: Fast) {
     val startedAt = rememberSaveable { System.currentTimeMillis() }
     val left = (Craving.COUNTDOWN_MS - (now - startedAt)).coerceAtLeast(0L)
 
+    val pokemon = remember { FavoritePickerSession(GEN1_POKEMON) }
+
     var card by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(card) {
-        delay(Craving.CARD_ROTATE_MS)
-        card = Craving.nextCard(card)
+        if (Craving.autoAdvances(card)) {
+            delay(Craving.CARD_ROTATE_MS)
+            card = Craving.nextCard(card)
+        }
     }
 
     val breath = rememberInfiniteTransition(label = "breath")
@@ -122,7 +130,7 @@ fun CravingScreen(vm: FastingViewModel, fast: Fast) {
         ) {
             BreathingCircle(phase = phase, modifier = Modifier.size(200.dp))
             DsText(Durations.clock(left), 26.sp)
-            DistractionCard(card = card, fast = fast, now = now) {
+            DistractionCard(card = card, fast = fast, now = now, pokemon = pokemon) {
                 card = Craving.nextCard(card)
             }
         }
@@ -146,11 +154,12 @@ private fun BreathingCircle(phase: Float, modifier: Modifier) {
 }
 
 /**
- * One of eight rotating cards: reminders, a game, progress, and fidgets. Cards advance on their own too,
- * and each fidget starts fresh when its card comes back around.
+ * One of nine rotating cards: reminders, a game, progress, fidgets, and the favorite Pokémon picker. Cards advance
+ * on their own too. The small fidgets start fresh when their card comes back around, but the Pokémon picker keeps its
+ * picks because it is held by the screen.
  */
 @Composable
-private fun DistractionCard(card: Int, fast: Fast, now: Long, onNext: () -> Unit) {
+private fun DistractionCard(card: Int, fast: Fast, now: Long, pokemon: FavoritePickerSession, onNext: () -> Unit) {
     val elapsed = now - fast.startAt
     DsPanel(Modifier.fillMaxWidth(), padding = PaddingValues(14.dp)) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -191,10 +200,19 @@ private fun DistractionCard(card: Int, fast: Fast, now: Long, onNext: () -> Unit
                     DsText("Draw whatever comes to mind. Clear the pad when you're done.", 14.sp, color = DsColors.Subtle)
                     DoodlePad()
                 }
-                else -> {
+                7 -> {
                     DsText("SPIN THE DIAL", 15.sp)
                     DsText("Drag around the dial in slow, steady circles.", 14.sp, color = DsColors.Subtle)
                     SpinDial()
+                }
+                else -> {
+                    DsText("PICK YOUR FAVORITE POKÉMON", 15.sp)
+                    DsText(
+                        "Pick the ones you like best. Pass keeps a whole batch in play. The last one standing is your favorite.",
+                        14.sp,
+                        color = DsColors.Subtle,
+                    )
+                    FavoritePokemonCard(pokemon)
                 }
             }
             DsTag("NEXT", modifier = Modifier.align(Alignment.End), onClick = onNext)
@@ -321,23 +339,23 @@ private fun SqueezeBall() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            squeezing = true
-                            val released = tryAwaitRelease()
-                            squeezing = false
-                            if (released) squeezes++
-                        },
-                    )
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(Modifier.size(120.dp).graphicsLayer { scaleX = scale; scaleY = scale }) {
+        Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+            // The touch target is the ball itself, not the whole strip around it.
+            Canvas(
+                Modifier
+                    .size(120.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                squeezing = true
+                                val released = tryAwaitRelease()
+                                squeezing = false
+                                if (released) squeezes++
+                            },
+                        )
+                    }
+                    .graphicsLayer { scaleX = scale; scaleY = scale },
+            ) {
                 drawCircle(DsColors.TopLight, radius = size.minDimension / 2f)
                 drawCircle(DsColors.Border, radius = size.minDimension / 2f, style = Stroke(3.dp.toPx()))
             }
@@ -349,30 +367,24 @@ private fun SqueezeBall() {
 /** A finger doodle pad. Draw freely; CLEAR wipes it. */
 @Composable
 private fun DoodlePad() {
-    val finished = remember { mutableStateListOf<List<Offset>>() }
+    val finished = remember { mutableStateListOf<Path>() }
     val live = remember { mutableStateListOf<Offset>() }
     val pad = Modifier
         .fillMaxWidth()
         .height(180.dp)
         .background(Color.White)
         .border(2.dp, DsColors.Border)
-        .pointerInput(Unit) {
-            detectDragGestures(
-                onDragStart = { start ->
-                    live.clear()
-                    live.add(start)
-                },
-                onDragEnd = {
-                    finished.add(live.toList())
-                    live.clear()
-                },
-                onDragCancel = { live.clear() },
-                onDrag = { change, _ ->
-                    live.add(change.position)
-                    change.consume()
-                },
-            )
-        }
+        .touchMoves(
+            onDown = { start, _ ->
+                live.clear()
+                live.add(start)
+            },
+            onMove = { point, _ -> live.add(point) },
+            onUp = {
+                if (live.size > 1) finished.add(strokePath(live.toList()))
+                live.clear()
+            },
+        )
 
     Column(
         Modifier.fillMaxWidth(),
@@ -380,9 +392,9 @@ private fun DoodlePad() {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Canvas(pad) {
-            val width = 4.dp.toPx()
-            finished.forEach { drawInk(it, width) }
-            drawInk(live.toList(), width)
+            val stroke = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+            finished.forEach { drawPath(it, DsColors.Cursor, style = stroke) }
+            if (live.size > 1) drawPath(strokePath(live.toList()), DsColors.Cursor, style = stroke)
         }
         DsTag("CLEAR") {
             finished.clear()
@@ -391,29 +403,63 @@ private fun DoodlePad() {
     }
 }
 
-private fun DrawScope.drawInk(points: List<Offset>, width: Float) {
-    for (i in 1 until points.size) {
-        drawLine(DsColors.Cursor, points[i - 1], points[i], strokeWidth = width, cap = StrokeCap.Round)
+/** A path through the given points, so a finished stroke is not walked point by point on every frame. */
+private fun strokePath(points: List<Offset>): Path = Path().apply {
+    points.firstOrNull()?.let { moveTo(it.x, it.y) }
+    points.drop(1).forEach { lineTo(it.x, it.y) }
+}
+
+/**
+ * Reports every move of one touch, from the moment it lands until it lifts or is cancelled. Unlike the drag
+ * detectors, this does not wait for touch slop, so a stroke or an arc starts exactly where the finger first touched.
+ */
+private fun Modifier.touchMoves(
+    onDown: (Offset, IntSize) -> Unit,
+    onMove: (Offset, IntSize) -> Unit,
+    onUp: () -> Unit,
+): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown()
+        onDown(down.position, size)
+        var pressed = true
+        while (pressed) {
+            val event = awaitPointerEvent()
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            if (change.positionChanged()) {
+                onMove(change.position, size)
+                change.consume()
+            }
+            pressed = change.pressed
+        }
+        onUp()
     }
+}
+
+/** The angle, in radians, of [point] around the centre of a box of [size]. */
+private fun angleAround(point: Offset, size: IntSize): Float {
+    val centre = Offset(size.width / 2f, size.height / 2f)
+    return atan2(point.y - centre.y, point.x - centre.x)
 }
 
 /** A dial you turn by dragging around its centre. Shows the degrees turned and the full turns. */
 @Composable
 private fun SpinDial() {
     var degrees by rememberSaveable { mutableStateOf(0f) }
+    val lastAngle = remember { FloatArray(1) }
     val dial = Modifier
         .size(160.dp)
-        .pointerInput(Unit) {
-            detectDragGestures { change, _ ->
-                val centre = Offset(size.width / 2f, size.height / 2f)
-                val before = atan2(change.previousPosition.y - centre.y, change.previousPosition.x - centre.x)
-                val after = atan2(change.position.y - centre.y, change.position.x - centre.x)
-                var delta = after - before
+        .touchMoves(
+            onDown = { point, size -> lastAngle[0] = angleAround(point, size) },
+            onMove = { point, size ->
+                val angle = angleAround(point, size)
+                var delta = angle - lastAngle[0]
                 if (delta > PI.toFloat()) delta -= 2f * PI.toFloat()
                 if (delta < -PI.toFloat()) delta += 2f * PI.toFloat()
                 degrees += Math.toDegrees(delta.toDouble()).toFloat()
-            }
-        }
+                lastAngle[0] = angle
+            },
+            onUp = {},
+        )
 
     Column(
         Modifier.fillMaxWidth(),

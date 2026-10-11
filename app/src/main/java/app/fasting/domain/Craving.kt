@@ -7,11 +7,17 @@ import kotlin.math.cos
 object Craving {
     const val COUNTDOWN_MS = 10 * Durations.MINUTE_MS
     const val CARD_ROTATE_MS = 150_000L
-    const val CARD_COUNT = 8
+    const val CARD_COUNT = 9
     const val BREATH_CYCLE_MS = 8_000L
 
     /** The card after [card], wrapping back to the first one after the last. */
     fun nextCard(card: Int): Int = (card + 1) % CARD_COUNT
+
+    /** Cards that wait for NEXT instead of moving on by themselves, so a game or fidget is never cut off mid-use. */
+    val INTERACTIVE_CARDS: Set<Int> = setOf(2, 4, 5, 6, 7, 8)
+
+    /** True when the timer should move on from [card] by itself. */
+    fun autoAdvances(card: Int): Boolean = card !in INTERACTIVE_CARDS
 
     /** Size of the breathing circle for [phase] (0..1 of one cycle). Eases in and out, 0 to 1. */
     fun breathScale(phase: Float): Float = ((1 - cos(2 * PI * phase)) / 2).toFloat()

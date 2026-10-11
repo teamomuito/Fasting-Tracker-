@@ -23,8 +23,17 @@ class CravingTest {
     }
 
     @Test
+    fun interactiveCardsWaitForNextWhileTheRestRotate() {
+        assertTrue(Craving.autoAdvances(0))
+        assertTrue(Craving.autoAdvances(1))
+        assertTrue(Craving.autoAdvances(3))
+        assertFalse(Craving.autoAdvances(2))
+        assertFalse(Craving.autoAdvances(8))
+    }
+
+    @Test
     fun cardsRotateThroughAllOfThemAndWrap() {
-        assertEquals(8, Craving.CARD_COUNT)
+        assertEquals(9, Craving.CARD_COUNT)
         var card = 0
         val seen = mutableSetOf<Int>()
         repeat(Craving.CARD_COUNT) {
