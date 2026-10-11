@@ -38,6 +38,7 @@ import java.io.FileOutputStream
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
+// NATIVE rasterises through the Robolectric native runtime, which runs on Linux x86_64, macOS and Windows x86_64 only.
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ScreenshotTest {
 
