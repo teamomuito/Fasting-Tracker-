@@ -34,17 +34,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import java.time.Instant
+import java.time.ZoneId
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.fasting.domain.Durations
 import app.fasting.domain.Fast
 import app.fasting.domain.FastStatus
+import app.fasting.domain.fastSpan
 import app.fasting.domain.formatDateTime
 import app.fasting.ui.FastingViewModel
 import app.fasting.ui.Screen
 import app.fasting.ui.UiState
 import app.fasting.ui.components.DsActionButton
 import app.fasting.ui.components.DsButtonRow
+import app.fasting.ui.components.DsCalendar
 import app.fasting.ui.components.DsChoice
 import app.fasting.ui.components.DsLetterButton
 import app.fasting.ui.components.DsPanel
@@ -142,6 +146,12 @@ fun TimerScreen(vm: FastingViewModel, ui: UiState, active: Fast?) {
                     onCustom = { editStartIn = true },
                 )
                 PlanLine(ui, now)
+            }
+
+            val plannedStart = active?.startAt ?: (now + Durations.hoursToMillis(ui.startInHours))
+            val plannedEnd = active?.targetEndAt ?: (plannedStart + Durations.hoursToMillis(ui.lengthHours))
+            DsPanel(Modifier.fillMaxWidth()) {
+                DsCalendar(fastSpan(plannedStart, plannedEnd), Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate())
             }
 
             when {

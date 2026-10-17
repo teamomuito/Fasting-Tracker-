@@ -6,6 +6,7 @@ An Android fasting timer dressed in the same Nintendo DS system-menu look as [pi
 
 - **Fasting timer**: one main button starts or ends a fast. A progress ring shows elapsed and remaining time.
 - **Custom hours**: presets of 12, 16, 18, 20 and 24 hours, or any length you type, decimals included (`14.5`, or `14,5`).
+- **Calendar**: month grid on the timer screen that highlights the days the planned or current fast covers.
 - **Start in X hours**: schedule a fast for NOW, 1, 2, 4 or 8 hours from now, or a custom delay. You get a notification when it starts and another when it ends. Scheduled fasts survive app restarts and reboots.
 - **I WANNA EAT**: a full-screen craving helper with a 10-minute countdown, a breathing circle, and nine rotating cards:
   - reminders: drink water, take a walk
